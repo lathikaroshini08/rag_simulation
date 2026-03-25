@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RAG Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    header {
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      background: #1e293b;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 10px;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+    }
+    .output {
+      margin-top: 10px;
+      background: #020617;
+      padding: 10px;
+      border-radius: 8px;
+      min-height: 80px;
+    }
+    .step {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+<header>RAG Simulator (Retrieval-Augmented Generation)</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="step">Step 1: Add Documents</div>
+    <textarea id="documents" placeholder="Enter documents (one per line)"></textarea>
+    <button onclick="storeDocs()">Store</button>
+  </div>
+
+  <div class="card">
+    <div class="step">Step 2: User Query</div>
+    <input id="query" placeholder="Ask something...">
+    <button onclick="retrieve()">Retrieve</button>
+  </div>
+
+  <div class="card">
+    <div class="step">Step 3: Retrieved Context</div>
+    <div id="retrieved" class="output"></div>
+  </div>
+
+  <div class="card">
+    <div class="step">Step 4: Augmented Prompt</div>
+    <div id="prompt" class="output"></div>
+  </div>
+
+  <div class="card">
+    <div class="step">Step 5: Generate Answer</div>
+    <button onclick="generate()">Generate</button>
+    <div id="answer" class="output"></div>
+  </div>
+
+</div>
+
+<script>
+  let vectorDB = [];
+  let retrievedDocs = [];
+
+  function storeDocs() {
+    const docs = document.getElementById('documents').value.split('\n');
+    vectorDB = docs.map(doc => ({
+      text: doc,
+      embedding: fakeEmbedding(doc)
+    }));
+    alert('Documents stored!');
+  }
+
+  function fakeEmbedding(text) {
+    return text.toLowerCase().split('').map(c => c.charCodeAt(0) % 10);
+  }
+
+  function similarity(a, b) {
+    let score = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      score += (10 - Math.abs(a[i] - b[i]));
+    }
+    return score;
+  }
+
+  function retrieve() {
+    const query = document.getElementById('query').value;
+    const queryEmbed = fakeEmbedding(query);
+
+    retrievedDocs = vectorDB
+      .map(doc => ({
+        ...doc,
+        score: similarity(queryEmbed, doc.embedding)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2);
+
+    document.getElementById('retrieved').innerText = retrievedDocs.map(d => d.text).join('\n');
+
+    const prompt = `Context:\n${retrievedDocs.map(d => d.text).join('\n')}\n\nQuestion:\n${query}`;
+    document.getElementById('prompt').innerText = prompt;
+  }
+
+  function generate() {
+    const answer = "This is a simulated answer based on retrieved context.";
+    document.getElementById('answer').innerText = answer;
+  }
+</script>
+
+</body>
+</html>
